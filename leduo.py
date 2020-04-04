@@ -112,7 +112,7 @@ class myThread(threading.Thread):
 
 def main():
     # 目前知道的只有4 到 662 之间的数字有漫画，后续可自行定义
-    for num in range(10, 11):
+    for num in range(10, 662):
         getChapter(url + str(num), num)
 
 
