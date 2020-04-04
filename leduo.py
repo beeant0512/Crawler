@@ -49,13 +49,13 @@ def getChapterImgs(path, url, chapterName):
 
 
 # 获取章节信息
-def getChapter(url):
+def getChapter(url, num):
     response = requests.get(url, headers=header, timeout=60)
     tree = etree.HTML(response.text)
 
     # 名称
     book_name = tree.xpath("//div[@class='banner_detail_form']//div[@class='info']//h1")
-    book_path = folder + "/" + book_name[0].text.replace('/', '-')
+    book_path = folder + "/" + str(num) + "_" + book_name[0].text.replace('/', '-')
     if not os.path.exists(book_path):
         os.mkdir(book_path)
     # 寻找章节
@@ -87,7 +87,7 @@ class myThread(threading.Thread):
 def main():
      # 目前知道的只有4 到 662 之间的数字有漫画，后续可自行定义
     for num in range(4,662): 
-        getChapter(url + str(num))
+        getChapter(url + str(num), num)
 
 
 if __name__ == '__main__':
