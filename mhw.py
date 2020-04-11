@@ -11,16 +11,16 @@ from tqdm import trange, tqdm
 import time
 
 # 乐多网站网址
-url = 'http://mhw.one/comic/1399'
+url = 'http://mhw.one/comic/1392'
 
 # 跳过连载中的
 skip_writeing = 0
 
 # 当前目录，用于存储下载下来的图片
-folder = os.getcwd()
+folder = os.getcwd() + os.sep + "ignore"
 
 # error log
-error_log = folder + "/error.log"
+error_log = folder + os.sep + "error.log"
 
 # 请求头
 header = {
@@ -52,6 +52,8 @@ def getChapterImgs(book_name, path, url, chapter_name):
                             )
         tree = etree.HTML(response.text)
         imgs = tree.xpath(u"//img")
+        nextPage = tree.xpath(u"//div[@class='letchepter']//a[@class='ChapterLestMune']")
+
         description = book_name + " >> " + chapter_name
         with tqdm(total=len(imgs), desc=description) as pbar:
             for img in imgs:
@@ -60,14 +62,15 @@ def getChapterImgs(book_name, path, url, chapter_name):
                 # 存储
                 if src:
                     p = src.split('/')
-                image_file_name = chapter_path + '/' + p[len(p) - 1]
+                image_file_name = chapter_path + os.sep + p[len(p) - 1]
                 if not os.path.exists(image_file_name):
                     r = requests.get(src, headers=header, proxies=proxies, timeout=60)
                     file_store(image_file_name, r)
         time.sleep(2)
-        
+        if nextPage and nextPage[0].attrib.get('href').startswith("/"):
+            getChapterImgs(book_name, path, 'http://mhw.one' + nextPage[0].attrib.get('href'), chapter_name)
     except Exception as e:
-        print(book_name + " " + chapter_name + " 获取异常")
+        print(book_name + " " + chapter_name + " 获取异常 %s"%e)
         log_error(book_name + " " + chapter_name + " 获取异常")
 
 def log_error(msg):
@@ -75,7 +78,7 @@ def log_error(msg):
         f.write( time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())) + " " + msg + '\n')
 
 def cleanName(name):
-    return name.replace('/', '-').replace(':', '-').replace("：", "-")
+    return name.replace('/', '-').replace(':', '-').replace("：", "-").replace("?","").replace(";","")
 
 
 # 获取章节信息
@@ -93,9 +96,9 @@ def getChapter(url, num):
                 print("跳过 " +book_name + " " + status)
                 time.sleep(5)
                 return ;
-            book_path = folder + "/" + str(num) + "_" + book_name
+            book_path = folder + os.sep + str(num) + "_" + book_name
             if not os.path.exists(book_path):
-                os.mkdir(book_path)
+                os.makedirs(book_path)
             # 寻找章节
             chapters = tree.xpath("//script")
             jsonStr = chapters[12].text.strip("\r\n  $(function(){$('.bottom,#khdDown').hide();});\r\n\r\nIntroData(")
@@ -114,13 +117,13 @@ def getChapter(url, num):
                     # tchapters.set_description(description + " %s")
                     href = str(chapter['id'])
                     name = cleanName(chapter['chapter_name'])
-                    threads[k] = myThread(book_name, book_path, 'http://mhw.one/view/' + str(chapter['comic_id']) +'/' + href, name, pbar)
+                    threads[k] = myThread(book_name, book_path, 'http://mhw.one/view/' + str(chapter['comic_id']) + "/" + href, name, pbar)
                     threads[k].start()
                     # thread_pool.submit(getChapterImgs, boock_name, book_path, 'http://leduomh.com' + href, name)
                 for k, thread in enumerate(threads):
                     thread.join()
     except Exception as e:
-        print(url + " 访问异常")
+        print(url + " 访问异常%s"%e)
         log_error(url + " 访问异常")
 
 
